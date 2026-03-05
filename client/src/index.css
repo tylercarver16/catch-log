@@ -1,0 +1,99 @@
+:root {
+  --teal:    #0d7377;
+  --teal-dk: #0a5c5f;
+  --teal-lt: #e8f5f5;
+  --bg:      #f4f7f8;
+}
+
+body {
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Navbar */
+.navbar { background: var(--teal) !important; }
+.navbar-brand, .nav-link { color: #fff !important; }
+.nav-link:hover, .nav-link.active { color: rgba(255,255,255,0.75) !important; }
+
+/* Buttons */
+.btn-teal {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+.btn-teal:hover { background: var(--teal-dk); border-color: var(--teal-dk); color: #fff; }
+
+/* Catch cards */
+.catch-card {
+  transition: box-shadow .15s, transform .15s;
+  cursor: pointer;
+}
+.catch-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+  transform: translateY(-1px);
+}
+
+/* Thumbnails */
+.thumb {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+/* Photo picker */
+.photo-drop {
+  border: 2px dashed #ced4da;
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  background: #fff;
+}
+.photo-drop:hover { border-color: var(--teal); background: var(--teal-lt); }
+.photo-drop.has-preview { padding: 0; border-style: solid; overflow: hidden; }
+.photo-drop img { max-height: 360px; width: 100%; object-fit: contain; display: block; }
+
+/* Detail photo */
+.detail-photo {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  background: #000;
+  border-radius: 12px;
+  display: block;
+}
+
+/* Info table */
+.info-table td:first-child {
+  color: #6c757d;
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  width: 110px;
+}
+
+/* Maps */
+#map-full   { height: calc(100vh - 56px); }
+#map-detail { height: 220px; border-radius: 12px; overflow: hidden; }
+
+/* Badges */
+.badge-teal { background: var(--teal); }
+
+/* Flash alerts */
+.alert { border-radius: 10px; }
+
+/* Gallery thumbnails */
+.gallery-thumb {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2px solid #dee2e6;
+  transition: border-color .15s;
+}
+.gallery-thumb.active { border-color: var(--teal); }
