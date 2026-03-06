@@ -61,6 +61,13 @@ function CatchCard({ c, onClick }) {
           {c.location_name && (
             <div className="text-muted small">{c.location_name}</div>
           )}
+          {(c.weight != null || c.length != null || c.lure) && (
+            <div className="text-muted small mt-1 d-flex gap-2">
+              {c.weight != null && <span>{c.weight} lb</span>}
+              {c.length != null && <span>{c.length} in</span>}
+              {c.lure && <span>{c.lure}</span>}
+            </div>
+          )}
         </div>
         <div className="text-end text-muted small flex-shrink-0">
           {c.temp != null && <span>{Math.round(c.temp)}°F</span>}
