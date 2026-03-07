@@ -17,8 +17,12 @@ export async function extractExif(filepath) {
     // gps:true makes exifr put decimal coords in data.latitude / data.longitude
     let lat = null, lng = null;
     if (data.latitude != null && data.longitude != null) {
-      lat = Number(data.latitude.toFixed(6));
-      lng = Number(data.longitude.toFixed(6));
+      const rawLat = Number(data.latitude.toFixed(6));
+      const rawLng = Number(data.longitude.toFixed(6));
+      if (rawLat !== 0 || rawLng !== 0) {
+        lat = rawLat;
+        lng = rawLng;
+      }
     }
 
     return { dt, lat, lng, estimated };
