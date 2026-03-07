@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
 });
 
 function MapPicker({ lat, lng, onChange }) {
-  const [markerPos, setMarkerPos] = useState(lat && lng ? [lat, lng] : null);
+  const [markerPos, setMarkerPos] = useState(lat && lng && !(lat === 0 && lng === 0) ? [lat, lng] : null);
   const markerRef = useRef();
 
   function ClickHandler() {
@@ -68,8 +68,8 @@ export default function Edit() {
       setForm({
         species:       catch_.species || '',
         photo_taken_at: toLocalDatetimeInput(catch_.photo_taken_at),
-        latitude:      catch_.latitude ?? '',
-        longitude:     catch_.longitude ?? '',
+        latitude:      (catch_.latitude === 0 && catch_.longitude === 0) ? '' : (catch_.latitude ?? ''),
+        longitude:     (catch_.latitude === 0 && catch_.longitude === 0) ? '' : (catch_.longitude ?? ''),
         weight:        catch_.weight ?? '',
         length:        catch_.length ?? '',
         lure:          catch_.lure || '',
@@ -105,10 +105,9 @@ export default function Edit() {
 
   if (!c) return <div className="container mt-4"><div className="spinner-border text-secondary" /></div>;
 
-  const mapCenter = c.latitude && c.longitude
-    ? [c.latitude, c.longitude]
-    : [39.5, -98.35];
-  const mapZoom   = c.latitude ? 13 : 4;
+  const hasLocation = c.latitude && c.longitude && !(c.latitude === 0 && c.longitude === 0);
+  const mapCenter = hasLocation ? [c.latitude, c.longitude] : [39.5, -98.35];
+  const mapZoom   = hasLocation ? 13 : 4;
 
   return (
     <div className="container mt-4" style={{ maxWidth: 560 }}>

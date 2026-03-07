@@ -12,7 +12,8 @@ export const api = {
   deleteCatch:   (id)       => axios.delete(`${BASE}/catches/${id}`).then(r => r.data),
 
   // Bulk import
-  bulkImport: (form) => axios.post(`${BASE}/import`, form).then(r => r.data),
+  bulkImport: (form, onUploadProgress) =>
+    axios.post(`${BASE}/import`, form, { onUploadProgress }).then(r => r.data),
 
   // Settings
   getSettings:    ()     => axios.get(`${BASE}/settings`).then(r => r.data),
