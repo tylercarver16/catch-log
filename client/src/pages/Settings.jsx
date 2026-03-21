@@ -7,6 +7,8 @@ import SpeciesSelect from '../components/SpeciesSelect.jsx';
 export default function Settings() {
   const [settings, setSettings]   = useState({ default_species: '', common_species: [], extended_species: [] });
   const [species, setSpecies]     = useState('');
+  const [weightUnit, setWeightUnit] = useState('lbs');
+  const [lengthUnit, setLengthUnit] = useState('in');
   const [saved, setSaved]         = useState(false);
   const [saving, setSaving]       = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -16,13 +18,15 @@ export default function Settings() {
     api.getSettings().then(s => {
       setSettings(s);
       setSpecies(s.default_species || '');
+      setWeightUnit(s.weight_unit || 'lbs');
+      setLengthUnit(s.length_unit || 'in');
     });
   }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
-    await api.updateSettings({ default_species: species });
+    await api.updateSettings({ default_species: species, weight_unit: weightUnit, length_unit: lengthUnit });
     setSaved(true);
     setSaving(false);
     setTimeout(() => setSaved(false), 2000);
@@ -45,6 +49,25 @@ export default function Settings() {
           />
           <div className="form-text">Pre-selected when adding a new catch.</div>
         </div>
+
+        <div className="mb-3">
+          <label className="form-label">Weight Unit</label>
+          <select className="form-select" value={weightUnit} onChange={e => setWeightUnit(e.target.value)}>
+            <option value="lbs">lbs</option>
+            <option value="oz">oz</option>
+            <option value="lbs_oz">lbs &amp; oz</option>
+            <option value="kg">kg</option>
+          </select>
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Length Unit</label>
+          <select className="form-select" value={lengthUnit} onChange={e => setLengthUnit(e.target.value)}>
+            <option value="in">inches (in)</option>
+            <option value="cm">centimeters (cm)</option>
+          </select>
+        </div>
+
         <button type="submit" className="btn btn-teal" disabled={saving}>
           {saving ? 'Saving…' : 'Save'}
         </button>

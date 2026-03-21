@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { api } from '../api.js';
-import { fmtDt, fmtCoords, cloudLabel, degToCompass, markerColor } from '../utils.js';
+import { fmtDt, fmtCoords, cloudLabel, degToCompass, markerColor, fmtWeight, fmtLength } from '../utils.js';
 
 // leaflet's default icon breaks with bundlers, point it at the CDN instead
 delete L.Icon.Default.prototype._getIconUrl;
@@ -29,13 +29,17 @@ export default function Detail() {
   const [c, setC] = useState(null);
   const [activePhoto, setActivePhoto] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [weightUnit, setWeightUnit] = useState('lbs');
+  const [lengthUnit, setLengthUnit] = useState('in');
 
   const ref = searchParams.get('ref');
 
   useEffect(() => {
-    api.getCatch(id).then(data => {
+    Promise.all([api.getCatch(id), api.getSettings()]).then(([data, s]) => {
       setC(data);
       setActivePhoto(data.primary_filename);
+      setWeightUnit(s.weight_unit || 'lbs');
+      setLengthUnit(s.length_unit || 'in');
     });
   }, [id]);
 
@@ -94,8 +98,8 @@ export default function Detail() {
               <tr><td>Date</td><td>{fmtDt(c.photo_taken_at, true)}</td></tr>
               {c.location_name && <tr><td>Location</td><td>{c.location_name}</td></tr>}
               <tr><td>Coords</td><td className="font-monospace small">{fmtCoords(c.latitude, c.longitude)}</td></tr>
-              {c.weight != null && <tr><td>Weight</td><td>{c.weight} lbs</td></tr>}
-              {c.length != null && <tr><td>Length</td><td>{c.length} in</td></tr>}
+              {c.weight != null && <tr><td>Weight</td><td>{fmtWeight(c.weight, weightUnit)}</td></tr>}
+              {c.length != null && <tr><td>Length</td><td>{fmtLength(c.length, lengthUnit)}</td></tr>}
               {c.lure && <tr><td>Lure</td><td>{c.lure}</td></tr>}
               {c.notes && <tr><td>Notes</td><td style={{ whiteSpace: 'pre-wrap' }}>{c.notes}</td></tr>}
             </tbody>

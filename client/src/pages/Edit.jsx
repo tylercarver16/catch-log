@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { api } from '../api.js';
-import { toLocalDatetimeInput, markerColor } from '../utils.js';
+import { toLocalDatetimeInput, markerColor, lbsToInput, inputToLbs, inchesToInput, inputToInches } from '../utils.js';
 import SpeciesSelect from '../components/SpeciesSelect.jsx';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -57,6 +57,8 @@ export default function Edit() {
 
   const [c, setC]           = useState(null);
   const [settings, setSettings] = useState({ common_species: [], extended_species: [] });
+  const [weightUnit, setWeightUnit] = useState('lbs');
+  const [lengthUnit, setLengthUnit] = useState('in');
   const [form, setForm]     = useState({});
   const [refetch, setRefetch] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -65,13 +67,19 @@ export default function Edit() {
     Promise.all([api.getCatch(id), api.getSettings()]).then(([catch_, s]) => {
       setC(catch_);
       setSettings(s);
+      const wu = s.weight_unit || 'lbs';
+      const lu = s.length_unit || 'in';
+      setWeightUnit(wu);
+      setLengthUnit(lu);
+      const wInput = lbsToInput(catch_.weight ?? null, wu);
       setForm({
         species:       catch_.species || '',
         photo_taken_at: toLocalDatetimeInput(catch_.photo_taken_at),
         latitude:      (catch_.latitude === 0 && catch_.longitude === 0) ? '' : (catch_.latitude ?? ''),
         longitude:     (catch_.latitude === 0 && catch_.longitude === 0) ? '' : (catch_.longitude ?? ''),
-        weight:        catch_.weight ?? '',
-        length:        catch_.length ?? '',
+        weight:        wu === 'lbs_oz' ? wInput.lbs : wInput,
+        weightOz:      wu === 'lbs_oz' ? wInput.oz  : '',
+        length:        inchesToInput(catch_.length ?? null, lu),
         lure:          catch_.lure || '',
         notes:         catch_.notes || '',
         temp:          catch_.temp ?? '',
@@ -93,6 +101,8 @@ export default function Edit() {
     try {
       await api.updateCatch(id, {
         ...form,
+        weight: inputToLbs(form.weight, weightUnit, form.weightOz),
+        length: inputToInches(form.length, lengthUnit),
         refetch_weather: refetch,
         photo_taken_at: form.photo_taken_at ? new Date(form.photo_taken_at).toISOString() : null,
       });
@@ -178,13 +188,29 @@ export default function Edit() {
         </div>
 
         <div className="row g-2 mb-3">
-          <div className="col">
-            <label className="form-label">Weight (lbs)</label>
-            <input type="number" step="0.01" className="form-control" value={form.weight} onChange={e => set('weight', e.target.value)} />
+          <div className={weightUnit === 'lbs_oz' ? 'col-12' : 'col'}>
+            <label className="form-label">
+              Weight ({weightUnit === 'lbs_oz' ? 'lbs & oz' : weightUnit})
+            </label>
+            {weightUnit === 'lbs_oz' ? (
+              <div className="d-flex gap-2">
+                <input type="number" step="1" min="0" className="form-control" placeholder="lbs"
+                  value={form.weight ?? ''} onChange={e => set('weight', e.target.value)} />
+                <input type="number" step="0.1" min="0" max="15.9" className="form-control" placeholder="oz"
+                  value={form.weightOz ?? ''} onChange={e => set('weightOz', e.target.value)} />
+              </div>
+            ) : (
+              <input type="number"
+                step={weightUnit === 'kg' ? '0.001' : weightUnit === 'oz' ? '0.1' : '0.01'}
+                min="0" className="form-control"
+                value={form.weight ?? ''} onChange={e => set('weight', e.target.value)} />
+            )}
           </div>
           <div className="col">
-            <label className="form-label">Length (in)</label>
-            <input type="number" step="0.1" className="form-control" value={form.length} onChange={e => set('length', e.target.value)} />
+            <label className="form-label">Length ({lengthUnit})</label>
+            <input type="number" step={lengthUnit === 'cm' ? '0.1' : '0.1'} min="0"
+              className="form-control"
+              value={form.length ?? ''} onChange={e => set('length', e.target.value)} />
           </div>
         </div>
 

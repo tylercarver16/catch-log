@@ -3,13 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import SpeciesSelect from '../components/SpeciesSelect.jsx';
 
+const CHUNK_SIZE = 25;
+
 export default function Import() {
   const [settings, setSettings]   = useState({ common_species: [], extended_species: [] });
   const [species, setSpecies]     = useState('');
   const [fileCount, setFileCount] = useState(0);
   const [saving, setSaving]       = useState(false);
-  const [uploadPct, setUploadPct] = useState(0);
   const [error, setError]         = useState('');
+
+  // Progress state
+  const [chunkIdx, setChunkIdx]       = useState(0);
+  const [totalChunks, setTotalChunks] = useState(1);
+  const [uploadPct, setUploadPct]     = useState(0);   // per-chunk upload %
+  const [savedSoFar, setSavedSoFar]   = useState(0);
+
   const fileRef  = useRef();
   const navigate = useNavigate();
 
@@ -19,25 +27,66 @@ export default function Import() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const files = fileRef.current.files;
+    const files = Array.from(fileRef.current.files);
     if (!files.length) { setError('No files selected.'); return; }
+
+    const notes  = e.target.notes.value;
+    const chunks = [];
+    for (let i = 0; i < files.length; i += CHUNK_SIZE) {
+      chunks.push(files.slice(i, i + CHUNK_SIZE));
+    }
+
     setSaving(true);
-    setUploadPct(0);
     setError('');
-    const form = new FormData(e.target);
-    form.delete('photos');
-    Array.from(files).forEach(f => form.append('photos', f));
-    form.set('species', species);
+    setChunkIdx(0);
+    setTotalChunks(chunks.length);
+    setUploadPct(0);
+    setSavedSoFar(0);
+
+    let running = 0;
+    const allResults = [];
+
     try {
-      const result = await api.bulkImport(form, e => {
-        if (e.total) setUploadPct(Math.round((e.loaded / e.total) * 100));
+      for (let i = 0; i < chunks.length; i++) {
+        setChunkIdx(i);
+        setUploadPct(0);
+
+        const form = new FormData();
+        chunks[i].forEach(f => form.append('photos', f));
+        form.set('species', species);
+        if (notes) form.set('notes', notes);
+
+        const result = await api.bulkImport(form, evt => {
+          if (evt.total) setUploadPct(Math.round((evt.loaded / evt.total) * 100));
+        });
+
+        running += result.saved;
+        setSavedSoFar(running);
+        allResults.push(...result.results);
+      }
+
+      navigate('/import/results', {
+        state: { saved: running, total: files.length, results: allResults },
       });
-      navigate('/import/results', { state: result });
     } catch (err) {
       setError(err.response?.data?.error || 'Import failed');
       setSaving(false);
     }
   }
+
+  // Overall progress: each completed chunk is worth (1/totalChunks), current chunk contributes its upload %
+  const overallPct = saving
+    ? Math.round(((chunkIdx + uploadPct / 100) / totalChunks) * 100)
+    : 0;
+
+  const progressLabel = () => {
+    if (!saving) return '';
+    if (totalChunks > 1) {
+      const phase = uploadPct < 100 ? `uploading ${uploadPct}%` : 'processing…';
+      return `Batch ${chunkIdx + 1} of ${totalChunks} — ${phase}`;
+    }
+    return uploadPct < 100 ? `Uploading ${uploadPct}%…` : 'Processing…';
+  };
 
   return (
     <div className="container mt-4" style={{ maxWidth: 520 }}>
@@ -57,7 +106,12 @@ export default function Import() {
             multiple
             onChange={e => setFileCount(e.target.files.length)}
           />
-          {fileCount > 0 && <div className="form-text">{fileCount} photo{fileCount !== 1 ? 's' : ''} selected</div>}
+          {fileCount > 0 && (
+            <div className="form-text">
+              {fileCount} photo{fileCount !== 1 ? 's' : ''} selected
+              {fileCount > CHUNK_SIZE && ` — will upload in ${Math.ceil(fileCount / CHUNK_SIZE)} batches`}
+            </div>
+          )}
         </div>
 
         <div className="mb-3">
@@ -78,22 +132,23 @@ export default function Import() {
         {saving && (
           <div className="mb-3">
             <div className="d-flex justify-content-between mb-1">
-              <small className="text-muted">
-                {uploadPct < 100 ? `Uploading… ${uploadPct}%` : 'Processing photos…'}
-              </small>
-              <small className="text-muted">{fileCount} photo{fileCount !== 1 ? 's' : ''}</small>
+              <small className="text-muted">{progressLabel()}</small>
+              {savedSoFar > 0 && (
+                <small className="text-muted">{savedSoFar} saved</small>
+              )}
             </div>
             <div className="progress" style={{ height: 6 }}>
               <div
                 className="progress-bar bg-teal"
-                style={{ width: uploadPct < 100 ? `${uploadPct}%` : '100%', transition: 'width 0.2s' }}
+                style={{ width: `${overallPct}%`, transition: 'width 0.2s' }}
               />
             </div>
           </div>
         )}
+
         <button type="submit" className="btn btn-teal w-100" disabled={saving}>
           {saving
-            ? <><span className="spinner-border spinner-border-sm me-2" />{uploadPct < 100 ? `Uploading ${uploadPct}%…` : 'Processing…'}</>
+            ? <><span className="spinner-border spinner-border-sm me-2" />{progressLabel()}</>
             : `Import${fileCount ? ` ${fileCount} photo${fileCount !== 1 ? 's' : ''}` : ''}`}
         </button>
       </form>

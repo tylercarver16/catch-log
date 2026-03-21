@@ -1,20 +1,54 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
-import { fmtDt, degToCompass } from '../utils.js';
+import { fmtDt, degToCompass, fmtWeight, fmtLength } from '../utils.js';
+
+const SORT_OPTIONS = [
+  { value: 'date-desc', label: 'Date (newest)' },
+  { value: 'date-asc',  label: 'Date (oldest)' },
+  { value: 'weight-desc', label: 'Weight (heaviest)' },
+  { value: 'weight-asc',  label: 'Weight (lightest)' },
+];
+
+function sortCatches(catches, sort) {
+  const sorted = [...catches];
+  if (sort === 'date-desc')    sorted.sort((a, b) => new Date(b.photo_taken_at) - new Date(a.photo_taken_at));
+  if (sort === 'date-asc')     sorted.sort((a, b) => new Date(a.photo_taken_at) - new Date(b.photo_taken_at));
+  if (sort === 'weight-desc')  sorted.sort((a, b) => (b.weight ?? -Infinity) - (a.weight ?? -Infinity));
+  if (sort === 'weight-asc')   sorted.sort((a, b) => (a.weight ?? Infinity)  - (b.weight ?? Infinity));
+  return sorted;
+}
 
 export default function Log() {
   const [catches, setCatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [sort, setSort] = useState(() => localStorage.getItem('log-sort') || 'date-desc');
+  const [weightUnit, setWeightUnit] = useState('lbs');
+  const [lengthUnit, setLengthUnit] = useState('in');
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.getCatches()
-      .then(setCatches)
+    Promise.all([api.getCatches(), api.getSettings()])
+      .then(([data, s]) => {
+        setCatches(data);
+        setWeightUnit(s.weight_unit || 'lbs');
+        setLengthUnit(s.length_unit || 'in');
+      })
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem('log-scroll');
+    if (saved) {
+      window.scrollTo(0, parseInt(saved, 10));
+      sessionStorage.removeItem('log-scroll');
+    }
+  }, [loading]);
+
   if (loading) return <div className="container mt-4"><div className="spinner-border text-secondary" /></div>;
+
+  const sorted = sortCatches(catches, sort);
 
   return (
     <div className="container mt-4">
@@ -23,14 +57,31 @@ export default function Log() {
         <button className="btn btn-teal btn-sm" onClick={() => navigate('/add')}>+ Add Catch</button>
       </div>
 
+      <div className="d-flex align-items-center justify-content-between mb-4">
+        <div className="stat-card">
+          <div className="stat-value">{catches.length}</div>
+          <div className="stat-label">Total Catches</div>
+        </div>
+        <select
+          className="form-select form-select-sm w-auto"
+          value={sort}
+          onChange={e => { setSort(e.target.value); localStorage.setItem('log-sort', e.target.value); }}
+        >
+          {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+
       {catches.length === 0 ? (
         <div className="text-center text-muted py-5">
           <p className="mt-2">No catches yet. Add your first one!</p>
         </div>
       ) : (
         <div className="d-flex flex-column gap-2">
-          {catches.map(c => (
-            <CatchCard key={c.id} c={c} onClick={() => navigate(`/catch/${c.id}`)} />
+          {sorted.map(c => (
+            <CatchCard key={c.id} c={c} weightUnit={weightUnit} lengthUnit={lengthUnit} onClick={() => {
+              sessionStorage.setItem('log-scroll', window.scrollY);
+              navigate(`/catch/${c.id}`);
+            }} />
           ))}
         </div>
       )}
@@ -38,7 +89,7 @@ export default function Log() {
   );
 }
 
-function CatchCard({ c, onClick }) {
+function CatchCard({ c, weightUnit = 'lbs', lengthUnit = 'in', onClick }) {
   const thumb = c.primary_filename ? `/uploads/thumbs/${c.primary_filename}` : null;
 
   return (
@@ -63,8 +114,8 @@ function CatchCard({ c, onClick }) {
           )}
           {(c.weight != null || c.length != null || c.lure) && (
             <div className="text-muted small mt-1 d-flex gap-2">
-              {c.weight != null && <span>{c.weight} lb</span>}
-              {c.length != null && <span>{c.length} in</span>}
+              {c.weight != null && <span>{fmtWeight(c.weight, weightUnit)}</span>}
+              {c.length != null && <span>{fmtLength(c.length, lengthUnit)}</span>}
               {c.lure && <span>{c.lure}</span>}
             </div>
           )}

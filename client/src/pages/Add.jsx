@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
+import { inputToLbs, inputToInches } from '../utils.js';
 import SpeciesSelect from '../components/SpeciesSelect.jsx';
 
 export default function Add() {
   const [settings, setSettings] = useState({ default_species: '', common_species: [], extended_species: [] });
   const [species, setSpecies]   = useState('');
+  const [weightUnit, setWeightUnit] = useState('lbs');
+  const [lengthUnit, setLengthUnit] = useState('in');
+  const [weightVal, setWeightVal] = useState('');
+  const [weightOz, setWeightOz]   = useState('');
+  const [lengthVal, setLengthVal] = useState('');
   const [preview, setPreview]   = useState(null);   // object URL or null
   const [primaryName, setPrimaryName] = useState(''); // original filename for HEIC label
   const [extras, setExtras]     = useState([]);
@@ -18,6 +24,8 @@ export default function Add() {
     api.getSettings().then(s => {
       setSettings(s);
       setSpecies(s.default_species || '');
+      setWeightUnit(s.weight_unit || 'lbs');
+      setLengthUnit(s.length_unit || 'in');
     });
   }, []);
 
@@ -44,6 +52,8 @@ export default function Add() {
     const form = new FormData(e.target);
     Array.from(files).forEach(f => form.append('photos', f));
     form.set('species', species);
+    form.set('weight', inputToLbs(weightVal, weightUnit, weightOz) ?? '');
+    form.set('length', inputToInches(lengthVal, lengthUnit) ?? '');
     try {
       await api.createCatch(form);
       navigate('/');
@@ -103,13 +113,28 @@ export default function Add() {
         </div>
 
         <div className="row g-2 mb-3">
-          <div className="col">
-            <label className="form-label">Weight (lbs)</label>
-            <input type="number" className="form-control" name="weight" step="0.01" min="0" />
+          <div className={weightUnit === 'lbs_oz' ? 'col-12' : 'col'}>
+            <label className="form-label">
+              Weight ({weightUnit === 'lbs_oz' ? 'lbs & oz' : weightUnit})
+            </label>
+            {weightUnit === 'lbs_oz' ? (
+              <div className="d-flex gap-2">
+                <input type="number" step="1" min="0" className="form-control" placeholder="lbs"
+                  value={weightVal} onChange={e => setWeightVal(e.target.value)} />
+                <input type="number" step="0.1" min="0" max="15.9" className="form-control" placeholder="oz"
+                  value={weightOz} onChange={e => setWeightOz(e.target.value)} />
+              </div>
+            ) : (
+              <input type="number"
+                step={weightUnit === 'kg' ? '0.001' : weightUnit === 'oz' ? '0.1' : '0.01'}
+                min="0" className="form-control"
+                value={weightVal} onChange={e => setWeightVal(e.target.value)} />
+            )}
           </div>
           <div className="col">
-            <label className="form-label">Length (in)</label>
-            <input type="number" className="form-control" name="length" step="0.1" min="0" />
+            <label className="form-label">Length ({lengthUnit})</label>
+            <input type="number" step="0.1" min="0" className="form-control"
+              value={lengthVal} onChange={e => setLengthVal(e.target.value)} />
           </div>
         </div>
 
