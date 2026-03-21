@@ -29,6 +29,8 @@ export default function Detail() {
   const [c, setC] = useState(null);
   const [activePhoto, setActivePhoto] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [settingCover, setSettingCover] = useState(false);
+  const [deletingPhoto, setDeletingPhoto] = useState(null);
   const [weightUnit, setWeightUnit] = useState('lbs');
   const [lengthUnit, setLengthUnit] = useState('in');
 
@@ -72,17 +74,58 @@ export default function Detail() {
           className="detail-photo mb-2"
         />
       )}
-      {allPhotos.length > 1 && (
-        <div className="d-flex gap-2 flex-wrap mb-3">
-          {allPhotos.map(p => (
-            <img
-              key={p.filename}
-              src={`/uploads/thumbs/${p.filename}`}
-              alt=""
-              className={`gallery-thumb${activePhoto === p.filename ? ' active' : ''}`}
-              onClick={() => setActivePhoto(p.filename)}
-            />
-          ))}
+      {allPhotos.length > 0 && (
+        <div className="mb-3">
+          <div className="d-flex gap-2 flex-wrap mb-2">
+            {allPhotos.map(p => (
+              <div key={p.filename} style={{ position: 'relative' }}>
+                <img
+                  src={`/uploads/thumbs/${p.filename}`}
+                  alt=""
+                  className={`gallery-thumb${activePhoto === p.filename ? ' active' : ''}`}
+                  onClick={() => setActivePhoto(p.filename)}
+                />
+                {p.is_primary && allPhotos.length > 1 ? (
+                  <div style={{ position: 'absolute', bottom: 3, left: 3, background: 'var(--teal)', borderRadius: 3, padding: '1px 4px', fontSize: '.6rem', color: '#fff', fontWeight: 600 }}>
+                    Cover
+                  </div>
+                ) : null}
+                {p.id != null && (
+                  <button
+                    style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, padding: 0, lineHeight: 1, fontSize: '.6rem', background: 'rgba(0,0,0,.55)', border: 'none', borderRadius: 3, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    disabled={deletingPhoto === p.id}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!confirm('Delete this photo?')) return;
+                      setDeletingPhoto(p.id);
+                      const updated = await api.deletePhoto(id, p.id);
+                      setC(updated);
+                      setActivePhoto(updated.primary_filename);
+                      setDeletingPhoto(null);
+                    }}
+                    title="Delete photo"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {allPhotos.length > 1 && activePhoto && !allPhotos.find(p => p.filename === activePhoto)?.is_primary && (
+            <button
+              className="btn btn-sm btn-outline-secondary"
+              disabled={settingCover}
+              onClick={async () => {
+                setSettingCover(true);
+                await api.setPrimaryPhoto(id, activePhoto);
+                const updated = await api.getCatch(id);
+                setC(updated);
+                setSettingCover(false);
+              }}
+            >
+              {settingCover ? 'Saving…' : 'Set as cover photo'}
+            </button>
+          )}
         </div>
       )}
 

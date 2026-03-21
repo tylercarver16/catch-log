@@ -69,6 +69,43 @@ router.get('/:id', (req, res) => {
   res.json(catchToJson(c));
 });
 
+// combine multiple catches into one (moves all photos to keepId, deletes the rest)
+router.post('/combine', (req, res) => {
+  const { keepId, mergeIds } = req.body;
+  if (!keepId || !Array.isArray(mergeIds) || mergeIds.length === 0) {
+    return res.status(400).json({ error: 'keepId and mergeIds[] required' });
+  }
+
+  const keepCatch = db.prepare('SELECT * FROM catch WHERE id = ?').get(keepId);
+  if (!keepCatch) return res.status(404).json({ error: 'keepId not found' });
+  for (const mid of mergeIds) {
+    if (!db.prepare('SELECT id FROM catch WHERE id = ?').get(mid)) {
+      return res.status(404).json({ error: `Catch ${mid} not found` });
+    }
+  }
+
+  const maxSortRow = db.prepare('SELECT MAX(sort_order) as m FROM catch_photo WHERE catch_id = ?').get(keepId);
+  let nextSort = (maxSortRow?.m ?? -1) + 1;
+
+  try {
+    db.exec('BEGIN');
+    for (const mid of mergeIds) {
+      const photos = db.prepare('SELECT * FROM catch_photo WHERE catch_id = ?').all(mid);
+      for (const photo of photos) {
+        db.prepare('UPDATE catch_photo SET catch_id = ?, is_primary = 0, sort_order = ? WHERE id = ?')
+          .run(keepId, nextSort++, photo.id);
+      }
+      db.prepare('DELETE FROM catch WHERE id = ?').run(mid);
+    }
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: e.message });
+  }
+
+  res.json(catchToJson(db.prepare('SELECT * FROM catch WHERE id = ?').get(keepId)));
+});
+
 // create a catch from uploaded photos
 router.post('/', upload.array('photos'), async (req, res) => {
   const files = req.files || [];
@@ -131,6 +168,17 @@ router.post('/', upload.array('photos'), async (req, res) => {
   }
 });
 
+// set primary photo
+router.put('/:id/primary-photo', (req, res) => {
+  const { filename } = req.body;
+  if (!filename) return res.status(400).json({ error: 'filename required' });
+  const photo = db.prepare('SELECT * FROM catch_photo WHERE catch_id = ? AND filename = ?').get(req.params.id, filename);
+  if (!photo) return res.status(404).json({ error: 'Photo not found' });
+  db.prepare('UPDATE catch_photo SET is_primary = 0 WHERE catch_id = ?').run(req.params.id);
+  db.prepare('UPDATE catch_photo SET is_primary = 1 WHERE id = ?').run(photo.id);
+  res.json({ ok: true });
+});
+
 // update a catch
 router.put('/:id', async (req, res) => {
   const c = db.prepare('SELECT * FROM catch WHERE id = ?').get(req.params.id);
@@ -184,6 +232,24 @@ router.put('/:id', async (req, res) => {
   );
 
   res.json(catchToJson(db.prepare('SELECT * FROM catch WHERE id = ?').get(c.id)));
+});
+
+// delete a single photo from a catch
+router.delete('/:id/photos/:photoId', (req, res) => {
+  const { id, photoId } = req.params;
+  const photo = db.prepare('SELECT * FROM catch_photo WHERE id = ? AND catch_id = ?').get(photoId, id);
+  if (!photo) return res.status(404).json({ error: 'Photo not found' });
+
+  [UPLOAD_DIR, THUMB_DIR].forEach(dir => fs.unlink(`${dir}/${photo.filename}`, () => {}));
+  db.prepare('DELETE FROM catch_photo WHERE id = ?').run(photo.id);
+
+  if (photo.is_primary) {
+    const next = db.prepare('SELECT * FROM catch_photo WHERE catch_id = ? ORDER BY sort_order LIMIT 1').get(id);
+    if (next) db.prepare('UPDATE catch_photo SET is_primary = 1 WHERE id = ?').run(next.id);
+  }
+
+  const c = db.prepare('SELECT * FROM catch WHERE id = ?').get(id);
+  res.json(catchToJson(c));
 });
 
 // nuke everything — useful for testing
