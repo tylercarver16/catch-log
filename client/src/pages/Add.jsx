@@ -6,7 +6,8 @@ import SpeciesSelect from '../components/SpeciesSelect.jsx';
 export default function Add() {
   const [settings, setSettings] = useState({ default_species: '', common_species: [], extended_species: [] });
   const [species, setSpecies]   = useState('');
-  const [preview, setPreview]   = useState(null);
+  const [preview, setPreview]   = useState(null);   // object URL or null
+  const [primaryName, setPrimaryName] = useState(''); // original filename for HEIC label
   const [extras, setExtras]     = useState([]);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
@@ -20,10 +21,17 @@ export default function Add() {
     });
   }, []);
 
+  function isHeic(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    return ext === 'heic' || ext === 'heif';
+  }
+
   function handleFiles(files) {
     if (!files.length) return;
-    setPreview(URL.createObjectURL(files[0]));
-    setExtras(Array.from(files).slice(1).map(f => URL.createObjectURL(f)));
+    const primary = files[0];
+    setPrimaryName(primary.name);
+    setPreview(isHeic(primary) ? null : URL.createObjectURL(primary));
+    setExtras(Array.from(files).slice(1).map(f => isHeic(f) ? null : URL.createObjectURL(f)));
     fileRef.current._files = files;
   }
 
@@ -34,8 +42,6 @@ export default function Add() {
     setSaving(true);
     setError('');
     const form = new FormData(e.target);
-    // replace the file input with the actual files
-    form.delete('photos');
     Array.from(files).forEach(f => form.append('photos', f));
     form.set('species', species);
     try {
@@ -54,14 +60,16 @@ export default function Add() {
       <form onSubmit={handleSubmit}>
         {/* Photo picker */}
         <div
-          className={`photo-drop mb-3${preview ? ' has-preview' : ''}`}
+          className={`photo-drop mb-3${preview || primaryName ? ' has-preview' : ''}`}
           onClick={() => fileRef.current.click()}
           onDrop={e => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
           onDragOver={e => e.preventDefault()}
         >
-          {preview
-            ? <img src={preview} alt="preview" />
-            : <div className="text-muted"><p className="mb-1 fw-semibold">Click or drop photos here</p><small>GPS &amp; weather read automatically from EXIF</small></div>
+          {primaryName && !preview
+            ? <div className="text-muted"><p className="mb-1 fw-semibold">{primaryName}</p><small>HEIC photo selected</small></div>
+            : preview
+              ? <img src={preview} alt="preview" />
+              : <div className="text-muted"><p className="mb-1 fw-semibold">Click or drop photos here</p><small>GPS &amp; weather read automatically from EXIF</small></div>
           }
         </div>
         <input
@@ -75,7 +83,11 @@ export default function Add() {
         {extras.length > 0 && (
           <div className="d-flex gap-2 flex-wrap mb-3">
             {extras.map((url, i) => (
-              <img key={i} src={url} alt="" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+              url
+                ? <img key={i} src={url} alt="" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                : <div key={i} style={{ width: 60, height: 60, borderRadius: 6, background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <small className="text-muted" style={{ fontSize: 9 }}>HEIC</small>
+                  </div>
             ))}
           </div>
         )}
