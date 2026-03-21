@@ -1,121 +1,364 @@
+/* ============================================================
+   BiteBook — Global Styles (Steps 2–5)
+   All color values reference theme.css variables only.
+   ============================================================ */
+
+/* Bootstrap CSS variable overrides */
 :root {
-  --teal:    #0d7377;
-  --teal-dk: #0a5c5f;
-  --teal-lt: #e8f5f5;
-  --bg:      #f4f7f8;
+  --bs-body-bg:              var(--bb-bg);
+  --bs-body-color:           var(--bb-text);
+  --bs-border-color:         var(--bb-border);
+  --bs-card-bg:              var(--bb-card);
+  --bs-card-border-color:    var(--bb-border);
+  --bs-card-cap-bg:          var(--bb-900);
+  --bs-card-cap-color:       var(--bb-text);
+  --bs-secondary-color:      var(--bb-muted);
+  --bs-link-color:           var(--bb-action);
+  --bs-link-hover-color:     var(--bb-action);
+  --bs-primary:              var(--bb-action);
+  --bs-primary-rgb:          46, 204, 113;
 }
+
+/* ── Step 2: Typography ─────────────────────────────────── */
 
 body {
-  background: var(--bg);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Barlow', sans-serif;
+  background: var(--bb-bg);
+  color: var(--bb-text);
 }
+
+h1, h2, h3, h4 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.data-value {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+}
+
+.label, .meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--bb-label);
+}
+
+/* ── Step 3: Global Layout ──────────────────────────────── */
+
+.app-bg  { background: var(--bb-bg); }
+.surface { background: var(--bb-surface); }
+
+/* All borders use the brand border color unless overridden */
+* { border-color: var(--bb-border); }
+
+input, select, textarea {
+  background: var(--bb-surface);
+  border: 1px solid var(--bb-border);
+  color: var(--bb-text);
+  font-family: 'Barlow', sans-serif;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--bb-strike);
+}
+
+/* Generic button classes per spec (apply when .primary / .secondary is added to <button>) */
+button.primary {
+  background: var(--bb-strike);
+  color: var(--bb-black);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: none;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--bb-text);
+  border: 1px solid var(--bb-border);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+button:hover { opacity: 0.85; }
+
+/* ── Bootstrap dark-mode component overrides ────────────── */
 
 /* Navbar */
-.navbar { background: var(--teal) !important; }
-.navbar-brand, .nav-link { color: #fff !important; }
-.nav-link:hover, .nav-link.active { color: rgba(255,255,255,0.75) !important; }
-
-/* Buttons */
-.btn-teal {
-  background: var(--teal);
-  border-color: var(--teal);
-  color: #fff;
+.navbar {
+  background: var(--bb-surface) !important;
+  border-bottom: 1px solid var(--bb-border);
 }
-.btn-teal:hover { background: var(--teal-dk); border-color: var(--teal-dk); color: #fff; }
+.navbar-brand, .nav-link        { color: var(--bb-text) !important; }
+.nav-link:hover                 { color: var(--bb-action) !important; opacity: 1; }
+.nav-link.active                { color: var(--bb-action) !important; font-weight: 600; }
+.navbar-toggler                 { border-color: var(--bb-border) !important; }
+.navbar-toggler-icon            { filter: invert(1) brightness(0.7); }
 
-/* Catch cards */
+/* Cards */
+.card {
+  background: var(--bb-card);
+  border: 1px solid var(--bb-border);
+  color: var(--bb-text);
+}
+.card-header, .card-footer {
+  background: var(--bb-900);
+  border-color: var(--bb-border);
+  color: var(--bb-text);
+}
+
+/* Tables */
+.table {
+  color: var(--bb-text);
+  --bs-table-color: var(--bb-text);
+  --bs-table-border-color: var(--bb-border);
+  --bs-table-bg: transparent;
+}
+.table > :not(caption) > * > * { border-bottom-color: var(--bb-border); }
+
+/* Form controls */
+.form-control, .form-select {
+  background-color: var(--bb-surface);
+  border-color: var(--bb-border);
+  color: var(--bb-text);
+}
+.form-control:focus, .form-select:focus {
+  background-color: var(--bb-surface);
+  border-color: var(--bb-action);
+  color: var(--bb-text);
+  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.18);
+}
+.form-control::placeholder { color: var(--bb-label); }
+
+.form-check-input {
+  background-color: var(--bb-surface);
+  border-color: var(--bb-border);
+}
+.form-check-input:checked {
+  background-color: var(--bb-action);
+  border-color: var(--bb-action);
+}
+
+.input-group-text {
+  background-color: var(--bb-700);
+  border-color: var(--bb-border);
+  color: var(--bb-muted);
+}
+
+/* Buttons — Bootstrap variants */
+.btn-teal {
+  background: var(--bb-action);
+  border-color: var(--bb-action);
+  color: var(--bb-black);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.btn-teal:hover {
+  filter: brightness(0.88);
+  color: var(--bb-black);
+  border-color: var(--bb-action);
+  opacity: 1; /* cancel generic button:hover opacity */
+}
+
+.btn-outline-secondary {
+  color: var(--bb-muted);
+  border-color: var(--bb-border);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.btn-outline-secondary:hover {
+  color: var(--bb-text);
+  background-color: var(--bb-700);
+  border-color: var(--bb-500);
+  opacity: 1;
+}
+
+.btn-outline-danger {
+  color: var(--bb-red);
+  border-color: var(--bb-red);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.btn-outline-danger:hover {
+  background-color: var(--bb-red);
+  border-color: var(--bb-red);
+  color: var(--bb-white);
+  opacity: 1;
+}
+
+.btn-close { filter: invert(1) brightness(0.7); }
+
+/* Bootstrap utility overrides */
+.text-muted          { color: var(--bb-muted) !important; }
+.bg-light            { background: var(--bb-700) !important; color: var(--bb-text) !important; }
+.bg-warning          { background: var(--bb-amber) !important; color: var(--bb-black) !important; }
+.text-dark           { color: var(--bb-black) !important; }
+.border              { border-color: var(--bb-border) !important; }
+.border-primary      { border-color: var(--bb-action) !important; }
+
+/* Progress */
+.progress     { background: var(--bb-700); }
+.progress-bar { background: var(--bb-action); }
+
+/* Alerts */
+.alert {
+  background: var(--bb-700);
+  border-color: var(--bb-border);
+  color: var(--bb-text);
+}
+.alert-success { border-color: var(--bb-action); }
+.alert-danger  { border-color: var(--bb-red); }
+.alert-warning { border-color: var(--bb-amber); }
+
+/* ── Step 4: Component-specific ─────────────────────────── */
+
+/* Badges */
+.badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid;
+  border-radius: 0;
+}
+.badge-teal       { background: var(--bb-action);  color: var(--bb-black);  border-color: var(--bb-action); }
+/* Species-specific badges (applied when badge class matches species) */
+.badge-largemouth { background: transparent; color: var(--bb-strike); border-color: #1A7A44; }
+.badge-smallmouth { background: transparent; color: var(--bb-water);  border-color: #0D5F7A; }
+.badge-spotted    { background: transparent; color: var(--bb-amber);  border-color: #7A5010; }
+.badge-other      { background: transparent; color: var(--bb-muted);  border-color: var(--bb-border); }
+
+/* Catch/entry cards */
 .catch-card {
+  background: var(--bb-surface);
+  border: 1px solid var(--bb-border);
+  border-left: 3px solid var(--bb-strike);
   transition: box-shadow .15s, transform .15s;
   cursor: pointer;
 }
 .catch-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,.35) !important;
   transform: translateY(-1px);
 }
+/* Selected state (used in combine mode) */
+.catch-card.border-primary {
+  border-color: var(--bb-action) !important;
+  border-left-color: var(--bb-action) !important;
+}
 
-/* Thumbnails */
+/* Weather chips */
+.weather-chip {
+  background: var(--bb-surface);
+  border: 1px solid var(--bb-border);
+  font-family: 'Barlow Condensed', sans-serif;
+}
+
+/* Stat cards & values */
+.stat-card {
+  background: var(--bb-card);
+  border: 1px solid var(--bb-border);
+  box-shadow: none;
+  padding: 14px 24px;
+  min-width: 110px;
+}
+.stat-value {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--bb-text);
+}
+.stat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--bb-label);
+  margin-top: 4px;
+}
+.stat-unit { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--bb-label); }
+.stat-key  { font-family: 'DM Mono', monospace; font-size: 8px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--bb-label); }
+
+/* ── Thumbnails ─────────────────────────────────────────── */
 .thumb {
   width: 80px;
   height: 80px;
   object-fit: cover;
-  border-radius: 8px;
   flex-shrink: 0;
 }
 
-/* Photo picker */
-.photo-drop {
-  border: 2px dashed #ced4da;
-  border-radius: 12px;
-  padding: 48px 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color .2s, background .2s;
-  background: #fff;
-}
-.photo-drop:hover { border-color: var(--teal); background: var(--teal-lt); }
-.photo-drop.has-preview { padding: 0; border-style: solid; overflow: hidden; }
-.photo-drop img { max-height: 360px; width: 100%; object-fit: contain; display: block; }
-
-/* Detail photo */
-.detail-photo {
-  width: 100%;
-  max-height: 420px;
-  object-fit: contain;
-  background: #000;
-  border-radius: 12px;
-  display: block;
-}
-
-/* Info table */
-.info-table td:first-child {
-  color: #6c757d;
-  font-size: .8rem;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  white-space: nowrap;
-  width: 110px;
-}
-
-/* Maps */
-#map-full   { height: calc(100vh - 56px); }
-#map-detail { height: 220px; border-radius: 12px; overflow: hidden; }
-
-/* Badges */
-.badge-teal { background: var(--teal); }
-
-/* Flash alerts */
-.alert { border-radius: 10px; }
-
-/* Stat cards */
-.stat-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 14px 24px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  min-width: 110px;
-}
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--teal);
-  line-height: 1;
-}
-.stat-label {
-  font-size: .75rem;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: #6c757d;
-  margin-top: 4px;
-}
-
-/* Gallery thumbnails */
 .gallery-thumb {
   width: 60px;
   height: 60px;
   object-fit: cover;
-  border-radius: 6px;
   cursor: pointer;
-  border: 2px solid #dee2e6;
+  border: 2px solid var(--bb-border);
   transition: border-color .15s;
 }
-.gallery-thumb.active { border-color: var(--teal); }
+.gallery-thumb.active { border-color: var(--bb-action); }
+
+/* ── Photo drop zone ────────────────────────────────────── */
+.photo-drop {
+  border: 2px dashed var(--bb-border);
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  background: var(--bb-surface);
+}
+.photo-drop:hover { border-color: var(--bb-action); background: var(--bb-700); }
+.photo-drop.has-preview { padding: 0; border-style: solid; overflow: hidden; }
+.photo-drop img { max-height: 360px; width: 100%; object-fit: contain; display: block; }
+
+/* ── Detail photo ───────────────────────────────────────── */
+.detail-photo {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  background: var(--bb-black);
+  display: block;
+}
+
+/* ── Info table ─────────────────────────────────────────── */
+.info-table td:first-child {
+  font-family: 'DM Mono', monospace;
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--bb-label);
+  white-space: nowrap;
+  width: 110px;
+}
+
+/* ── Maps ───────────────────────────────────────────────── */
+#map-full   { height: calc(100vh - 56px); }
+#map-detail { height: 220px; overflow: hidden; }
+
+/* ── Step 5: Border-radius reset ───────────────────────── */
+*, *::before, *::after { border-radius: 0 !important; }
+.circular { border-radius: 50% !important; }
+
+/* Bootstrap spinner must stay circular */
+.spinner-border { border-radius: 50% !important; }
+
+/* Leaflet map markers are explicitly excluded from the radius reset per spec.
+   These shapes are set as inline styles inside Leaflet divIcons, so
+   !important class-level exceptions are required to preserve them. */
+.leaflet-marker-icon > div          { border-radius: 50% 50% 50% 0 !important; }
+.leaflet-popup-content-wrapper      { border-radius: 4px !important; }

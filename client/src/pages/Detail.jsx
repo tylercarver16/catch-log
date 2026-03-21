@@ -86,7 +86,7 @@ export default function Detail() {
                   onClick={() => setActivePhoto(p.filename)}
                 />
                 {p.is_primary && allPhotos.length > 1 ? (
-                  <div style={{ position: 'absolute', bottom: 3, left: 3, background: 'var(--teal)', borderRadius: 3, padding: '1px 4px', fontSize: '.6rem', color: '#fff', fontWeight: 600 }}>
+                  <div style={{ position: 'absolute', bottom: 3, left: 3, background: 'var(--bb-action)', padding: '1px 4px', fontSize: '.6rem', color: 'var(--bb-black)', fontWeight: 600 }}>
                     Cover
                   </div>
                 ) : null}

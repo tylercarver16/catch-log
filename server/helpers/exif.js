@@ -1,10 +1,13 @@
 import exifr from 'exifr';
+import { readFile } from 'fs/promises';
 
 // pulls datetime and GPS out of image EXIF, returns { dt, lat, lng, estimated }
 export async function extractExif(filepath) {
   try {
-    // using pick alongside gps:true breaks GPS processing, so just parse everything
-    const data = await exifr.parse(filepath, { gps: true });
+    // Read the full buffer — chunked reading can miss GPS data in HEIC/HEIF containers
+    // where the EXIF block may be located beyond the default read window
+    const buf = await readFile(filepath);
+    const data = await exifr.parse(buf, { gps: true });
 
     if (!data) return { dt: new Date(), lat: null, lng: null, estimated: true };
 

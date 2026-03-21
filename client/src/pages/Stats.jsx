@@ -81,16 +81,15 @@ function BarChart({ data, maxVal, color = 'var(--teal)' }) {
     <div className="d-flex align-items-end gap-1" style={{ height: 80 }}>
       {data.map(({ label, count }) => (
         <div key={label} className="d-flex flex-column align-items-center flex-grow-1" style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '.65rem', color: '#6c757d', marginBottom: 2 }}>{count || ''}</div>
+          <div style={{ fontSize: '.65rem', color: 'var(--bb-muted)', marginBottom: 2 }}>{count || ''}</div>
           <div style={{
             width: '100%',
             height: maxVal ? `${Math.round((count / maxVal) * 60)}px` : '2px',
-            background: count ? color : '#e9ecef',
-            borderRadius: '3px 3px 0 0',
+            background: count ? color : 'var(--bb-600)',
             minHeight: 2,
             transition: 'height .3s',
           }} />
-          <div style={{ fontSize: '.6rem', color: '#6c757d', marginTop: 4, textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+          <div style={{ fontSize: '.6rem', color: 'var(--bb-muted)', marginTop: 4, textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
             {label}
           </div>
         </div>

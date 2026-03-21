@@ -125,7 +125,7 @@ export default function Log() {
 
       {/* Select mode bottom bar */}
       {selectMode && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #dee2e6', padding: '12px 16px', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bb-surface)', borderTop: '1px solid var(--bb-border)', padding: '12px 16px', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span className="text-muted small">{selected.size} selected</span>
           <button
             className="btn btn-teal btn-sm"
