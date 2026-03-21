@@ -45,6 +45,10 @@ db.exec(`
   );
 `);
 
+// migrate: add unit columns if they don't exist yet
+try { db.exec("ALTER TABLE settings ADD COLUMN weight_unit TEXT DEFAULT 'lbs'"); } catch {}
+try { db.exec("ALTER TABLE settings ADD COLUMN length_unit TEXT DEFAULT 'in'"); } catch {}
+
 // make sure there's always a settings row
 const s = db.prepare('SELECT id FROM settings LIMIT 1').get();
 if (!s) db.prepare("INSERT INTO settings (id, default_species) VALUES (1, '')").run();

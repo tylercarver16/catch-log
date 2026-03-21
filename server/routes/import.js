@@ -12,9 +12,20 @@ import { processPhoto, isAllowedExt } from '../helpers/imageProcess.js';
 const router = Router();
 const upload = multer({ dest: os.tmpdir() });
 
-function toFloat(v) {
-  const n = parseFloat(v);
-  return isNaN(n) ? null : n;
+// Process up to N async tasks concurrently
+const CONCURRENCY = 4;
+async function runConcurrent(items, fn) {
+  if (!items.length) return [];
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, items.length) }, worker));
+  return results;
 }
 
 router.post('/', upload.array('photos'), async (req, res) => {
@@ -24,20 +35,27 @@ router.post('/', upload.array('photos'), async (req, res) => {
   const { species, notes } = req.body;
   const results = [];
 
-  // pull EXIF from each file first
-  const pending = [];
+  // Separate valid from invalid files up front
+  const validFiles   = [];
+  const invalidFiles = [];
   for (const f of files) {
     const ext = path.extname(f.originalname).toLowerCase();
-    if (!isAllowedExt(ext)) {
+    if (isAllowedExt(ext)) {
+      validFiles.push(f);
+    } else {
+      invalidFiles.push(f);
       results.push({ name: f.originalname, extra_names: [], success: false, error: `Unsupported type (${ext})`, catch: null });
       fs.unlink(f.path, () => {});
-      continue;
     }
-    const { dt, lat, lng, estimated } = await extractExif(f.path);
-    pending.push({ name: f.originalname, tmp: f.path, dt, lat, lng, estimated });
   }
 
-  // sort by timestamp then group photos taken within 60s of each other
+  // Phase 1: extract EXIF from all valid files in parallel
+  const pending = await runConcurrent(validFiles, async (f) => {
+    const { dt, lat, lng, estimated } = await extractExif(f.path);
+    return { name: f.originalname, tmp: f.path, dt, lat, lng, estimated };
+  });
+
+  // Sort by timestamp then group photos taken within 60s of each other
   pending.sort((a, b) => (a.dt || 0) - (b.dt || 0));
   const groups = [];
   for (const fi of pending) {
@@ -55,14 +73,16 @@ router.post('/', upload.array('photos'), async (req, res) => {
     if (!placed) groups.push([fi]);
   }
 
-  // save each group as one catch
-  for (const group of groups) {
+  // Phase 2: process each group concurrently — photo conversion + weather + geocode + DB write
+  const groupResults = await runConcurrent(groups, async (group) => {
     const primary = group[0];
     const extras  = group.slice(1);
     try {
-      const filename = await processPhoto(primary.tmp);
-      const weather  = primary.lat ? await fetchWeather(primary.lat, primary.lng, primary.dt) : null;
-      const locName  = primary.lat ? await reverseGeocode(primary.lat, primary.lng) : null;
+      const [filename, weather, locName] = await Promise.all([
+        processPhoto(primary.tmp, primary.name),
+        primary.lat ? fetchWeather(primary.lat, primary.lng, primary.dt) : Promise.resolve(null),
+        primary.lat ? reverseGeocode(primary.lat, primary.lng)           : Promise.resolve(null),
+      ]);
 
       const info = db.prepare(`
         INSERT INTO catch
@@ -86,30 +106,38 @@ router.post('/', upload.array('photos'), async (req, res) => {
 
       for (let i = 0; i < extras.length; i++) {
         try {
-          const efn = await processPhoto(extras[i].tmp);
+          const efn = await processPhoto(extras[i].tmp, extras[i].name);
           db.prepare('INSERT INTO catch_photo (catch_id, filename, is_primary, sort_order) VALUES (?,?,0,?)')
             .run(catchId, efn, i + 1);
         } catch {}
       }
 
       const created = db.prepare('SELECT * FROM catch WHERE id = ?').get(catchId);
-      results.push({
-        name: primary.name,
+      return {
+        name:        primary.name,
         extra_names: extras.map(e => e.name),
-        success: true,
-        error: null,
+        success:     true,
+        error:       null,
         catch: { id: created.id, photo_taken_at: created.photo_taken_at, location_name: created.location_name, temp: created.temp },
-      });
+      };
     } catch (e) {
-      results.push({ name: primary.name, extra_names: extras.map(x => x.name), success: false, error: e.message, catch: null });
+      return {
+        name:        primary.name,
+        extra_names: extras.map(e => e.name),
+        success:     false,
+        error:       e.message,
+        catch:       null,
+      };
     } finally {
       group.forEach(fi => fs.unlink(fi.tmp, () => {}));
     }
-  }
+  });
+
+  results.push(...groupResults);
 
   res.json({
-    saved: results.filter(r => r.success).length,
-    total: files.length,
+    saved:   results.filter(r => r.success).length,
+    total:   files.length,
     results,
   });
 });

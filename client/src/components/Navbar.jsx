@@ -20,6 +20,7 @@ export default function Navbar() {
               { to: '/',        label: 'Log'      },
               { to: '/add',     label: 'Add'      },
               { to: '/map',     label: 'Map'      },
+              { to: '/stats',   label: 'Stats'    },
               { to: '/settings',label: 'Settings' },
             ].map(({ to, label }) => (
               <li key={to} className="nav-item">

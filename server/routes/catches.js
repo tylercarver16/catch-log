@@ -83,7 +83,7 @@ router.post('/', upload.array('photos'), async (req, res) => {
 
   try {
     const { dt, lat, lng, estimated } = await extractExif(primaryFile.path);
-    const filename = await processPhoto(primaryFile.path);
+    const filename = await processPhoto(primaryFile.path, primaryFile.originalname);
     const weather  = lat ? await fetchWeather(lat, lng, dt) : null;
     const locName  = lat ? await reverseGeocode(lat, lng) : null;
 
@@ -114,7 +114,7 @@ router.post('/', upload.array('photos'), async (req, res) => {
       const eExt = path.extname(ef.originalname).toLowerCase();
       if (!isAllowedExt(eExt)) continue;
       try {
-        const efn = await processPhoto(ef.path);
+        const efn = await processPhoto(ef.path, ef.originalname);
         db.prepare('INSERT INTO catch_photo (catch_id, filename, is_primary, sort_order) VALUES (?,?,0,?)')
           .run(catchId, efn, i + 1);
       } catch (e) {

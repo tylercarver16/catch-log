@@ -8,6 +8,7 @@ import MapView from './pages/MapView.jsx';
 import Import from './pages/Import.jsx';
 import ImportResults from './pages/ImportResults.jsx';
 import Settings from './pages/Settings.jsx';
+import Stats from './pages/Stats.jsx';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/map"                element={<MapView />} />
         <Route path="/import"             element={<Import />} />
         <Route path="/import/results"     element={<ImportResults />} />
+        <Route path="/stats"              element={<Stats />} />
         <Route path="/settings"           element={<Settings />} />
         <Route path="*"                   element={<Navigate to="/" />} />
       </Routes>
