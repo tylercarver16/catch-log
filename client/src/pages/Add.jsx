@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { inputToLbs, inputToInches } from '../utils.js';
 import SpeciesSelect from '../components/SpeciesSelect.jsx';
+import LureSelect from '../components/LureSelect.jsx';
 
 export default function Add() {
   const [settings, setSettings] = useState({ default_species: '', common_species: [], extended_species: [] });
@@ -15,6 +16,8 @@ export default function Add() {
   const [preview, setPreview]   = useState(null);   // object URL or null
   const [primaryName, setPrimaryName] = useState(''); // original filename for HEIC label
   const [extras, setExtras]     = useState([]);
+  const [lureType, setLureType] = useState('');
+  const [lureName, setLureName] = useState('');
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
   const fileRef  = useRef();
@@ -54,6 +57,8 @@ export default function Add() {
     form.set('species', species);
     form.set('weight', inputToLbs(weightVal, weightUnit, weightOz) ?? '');
     form.set('length', inputToInches(lengthVal, lengthUnit) ?? '');
+    form.set('lure_type', lureType);
+    form.set('lure_name', lureName);
     try {
       await api.createCatch(form);
       navigate('/');
@@ -139,8 +144,11 @@ export default function Add() {
         </div>
 
         <div className="mb-3">
-          <label className="form-label">Lure / Bait</label>
-          <input type="text" className="form-control" name="lure" />
+          <LureSelect
+            lureType={lureType}
+            lureName={lureName}
+            onChange={(type, name) => { setLureType(type); setLureName(name); }}
+          />
         </div>
 
         <div className="mb-3">

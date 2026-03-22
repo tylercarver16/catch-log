@@ -47,8 +47,9 @@ function computeStats(catches, weightUnit, lengthUnit) {
   // Top lures
   const lureCounts = {};
   catches.forEach(c => {
-    if (!c.lure) return;
-    lureCounts[c.lure] = (lureCounts[c.lure] || 0) + 1;
+    const key = c.lure_name?.trim() || null;
+    if (!key) return;
+    lureCounts[key] = (lureCounts[key] || 0) + 1;
   });
   const lureList = Object.entries(lureCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
 

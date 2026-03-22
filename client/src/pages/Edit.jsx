@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { api } from '../api.js';
 import { toLocalDatetimeInput, markerColor, lbsToInput, inputToLbs, inchesToInput, inputToInches } from '../utils.js';
 import SpeciesSelect from '../components/SpeciesSelect.jsx';
+import LureSelect from '../components/LureSelect.jsx';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -80,7 +81,8 @@ export default function Edit() {
         weight:        wu === 'lbs_oz' ? wInput.lbs : wInput,
         weightOz:      wu === 'lbs_oz' ? wInput.oz  : '',
         length:        inchesToInput(catch_.length ?? null, lu),
-        lure:          catch_.lure || '',
+        lure_type:     catch_.lure_type || '',
+        lure_name:     catch_.lure_name || '',
         notes:         catch_.notes || '',
         temp:          catch_.temp ?? '',
         wind_speed:    catch_.wind_speed ?? '',
@@ -215,8 +217,11 @@ export default function Edit() {
         </div>
 
         <div className="mb-3">
-          <label className="form-label">Lure / Bait</label>
-          <input type="text" className="form-control" value={form.lure} onChange={e => set('lure', e.target.value)} />
+          <LureSelect
+            lureType={form.lure_type}
+            lureName={form.lure_name}
+            onChange={(type, name) => { set('lure_type', type); set('lure_name', name); }}
+          />
         </div>
 
         <div className="mb-3">

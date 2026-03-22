@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { api } from '../api.js';
 import { fmtDt, fmtCoords, cloudLabel, degToCompass, markerColor, fmtWeight, fmtLength } from '../utils.js';
+import { fmtLure } from '../constants/lureTypes.js';
 
 // leaflet's default icon breaks with bundlers, point it at the CDN instead
 delete L.Icon.Default.prototype._getIconUrl;
@@ -143,7 +144,7 @@ export default function Detail() {
               <tr><td>Coords</td><td className="font-monospace small">{fmtCoords(c.latitude, c.longitude)}</td></tr>
               {c.weight != null && <tr><td>Weight</td><td>{fmtWeight(c.weight, weightUnit)}</td></tr>}
               {c.length != null && <tr><td>Length</td><td>{fmtLength(c.length, lengthUnit)}</td></tr>}
-              {c.lure && <tr><td>Lure</td><td>{c.lure}</td></tr>}
+              {fmtLure(c.lure_type, c.lure_name) && <tr><td>Lure</td><td>{fmtLure(c.lure_type, c.lure_name)}</td></tr>}
               {c.notes && <tr><td>Notes</td><td style={{ whiteSpace: 'pre-wrap' }}>{c.notes}</td></tr>}
             </tbody>
           </table>

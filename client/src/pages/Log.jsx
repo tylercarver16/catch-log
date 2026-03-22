@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { fmtDt, degToCompass, fmtWeight, fmtLength } from '../utils.js';
+import { fmtLure } from '../constants/lureTypes.js';
 
 const SORT_OPTIONS = [
   { value: 'date-desc', label: 'Date (newest)' },
@@ -120,6 +121,10 @@ export default function Log() {
               }}
             />
           ))}
+          <div className="text-center text-muted small py-4">
+            <div>— {catches.length} {catches.length === 1 ? 'catch' : 'catches'} logged —</div>
+            <div className="mt-1">End of log. Better get back on the water.</div>
+          </div>
         </div>
       )}
 
@@ -159,50 +164,68 @@ function CatchCard({ c, weightUnit = 'lbs', lengthUnit = 'in', onClick, selectab
     <div
       className={`card catch-card shadow-sm${isSelected ? ' border-primary' : ''}`}
       onClick={onClick}
-      style={isSelected ? { borderWidth: 2 } : {}}
+      style={{ ...(isSelected ? { borderWidth: 2 } : {}), cursor: 'pointer', overflow: 'hidden' }}
     >
-      <div className="card-body d-flex align-items-center gap-3 py-2">
-        {selectable && (
-          <input
-            type="checkbox"
-            className="form-check-input flex-shrink-0"
-            checked={isSelected}
-            onChange={onSelect}
-            onClick={e => e.stopPropagation()}
-            style={{ width: 18, height: 18, cursor: 'pointer' }}
-          />
-        )}
+      <div className="d-flex" style={{ minHeight: 100 }}>
+        {/* Photo */}
         {thumb
-          ? <img src={thumb} alt="" className="thumb" />
-          : <div className="thumb bg-light d-flex align-items-center justify-content-center rounded text-muted" style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1 }}>NO PHOTO</div>
+          ? <img src={thumb} alt="" style={{ width: 100, flexShrink: 0, objectFit: 'cover', alignSelf: 'stretch' }} />
+          : <div style={{ width: 100, flexShrink: 0, background: 'var(--bb-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: '0.1em', color: 'var(--bb-label)' }}>NO PHOTO</div>
         }
-        <div className="flex-grow-1 min-width-0">
-          <div className="d-flex align-items-center gap-2 mb-1">
-            {c.species && (
-              <span className="badge badge-teal">{c.species}</span>
-            )}
-            {c.timestamp_est && (
-              <span className="badge bg-warning text-dark" style={{ fontSize: '.7rem' }}>Est.</span>
+
+        {/* Info */}
+        <div className="flex-grow-1 px-3 py-2 d-flex flex-column justify-content-between min-width-0">
+          <div className="d-flex align-items-start justify-content-between gap-2">
+            <div className="min-width-0">
+              {c.species && <div className="badge badge-teal mb-1">{c.species}</div>}
+              <div className="text-muted small">{fmtDt(c.photo_taken_at)}</div>
+              {c.location_name && (
+                <div className="text-muted small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.location_name}</div>
+              )}
+            </div>
+
+            {/* Prominent size stat */}
+            {(c.weight != null || c.length != null) && (
+              <div className="text-end flex-shrink-0">
+                {c.weight != null && (
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1.75rem', lineHeight: 1, color: 'var(--bb-action)' }}>
+                    {fmtWeight(c.weight, weightUnit)}
+                  </div>
+                )}
+                {c.length != null && (
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3, color: 'var(--bb-200)' }}>
+                    {fmtLength(c.length, lengthUnit)}
+                  </div>
+                )}
+              </div>
             )}
           </div>
-          <div className="text-muted small">{fmtDt(c.photo_taken_at)}</div>
-          {c.location_name && (
-            <div className="text-muted small">{c.location_name}</div>
-          )}
-          {(c.weight != null || c.length != null || c.lure) && (
-            <div className="text-muted small mt-1 d-flex gap-2">
-              {c.weight != null && <span>{fmtWeight(c.weight, weightUnit)}</span>}
-              {c.length != null && <span>{fmtLength(c.length, lengthUnit)}</span>}
-              {c.lure && <span>{c.lure}</span>}
+
+          <div className="d-flex align-items-center justify-content-between mt-1">
+            <div className="d-flex gap-2 align-items-center">
+              {fmtLure(c.lure_type, c.lure_name) && <span className="text-muted small">{fmtLure(c.lure_type, c.lure_name)}</span>}
+              {c.timestamp_est && <span className="badge bg-warning text-dark" style={{ fontSize: '.65rem' }}>Est.</span>}
             </div>
-          )}
+            <div className="text-muted small text-end">
+              {c.temp != null && <span>{Math.round(c.temp)}°F</span>}
+              {c.wind_speed != null && <span className="ms-2">{Math.round(c.wind_speed)} mph {degToCompass(c.wind_dir)}</span>}
+            </div>
+          </div>
         </div>
-        <div className="text-end text-muted small flex-shrink-0">
-          {c.temp != null && <span>{Math.round(c.temp)}°F</span>}
-          {c.wind_speed != null && (
-            <div>{Math.round(c.wind_speed)} mph {degToCompass(c.wind_dir)}</div>
-          )}
-        </div>
+
+        {/* Select checkbox */}
+        {selectable && (
+          <div className="d-flex align-items-center pe-3">
+            <input
+              type="checkbox"
+              className="form-check-input flex-shrink-0"
+              checked={isSelected}
+              onChange={onSelect}
+              onClick={e => e.stopPropagation()}
+              style={{ width: 18, height: 18, cursor: 'pointer' }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -49,6 +49,10 @@ db.exec(`
 try { db.exec("ALTER TABLE settings ADD COLUMN weight_unit TEXT DEFAULT 'lbs'"); } catch {}
 try { db.exec("ALTER TABLE settings ADD COLUMN length_unit TEXT DEFAULT 'in'"); } catch {}
 
+// migrate: structured lure fields
+try { db.exec("ALTER TABLE catch ADD COLUMN lure_type TEXT"); } catch {}
+try { db.exec("ALTER TABLE catch ADD COLUMN lure_name TEXT"); } catch {}
+
 // make sure there's always a settings row
 const s = db.prepare('SELECT id FROM settings LIMIT 1').get();
 if (!s) db.prepare("INSERT INTO settings (id, default_species) VALUES (1, '')").run();
