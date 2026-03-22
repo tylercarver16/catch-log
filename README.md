@@ -1,22 +1,22 @@
-# Bass Log
+# BiteBook
 
 > **Work in progress** — actively being built.
 
-A personal fishing catch logger I built to keep track of where and when I catch fish. Upload a photo, and it pulls GPS coordinates and timestamp straight from the EXIF data, then automatically grabs the weather and location name. Everything gets stored locally in SQLite.
+A personal fishing catch logger. Upload a photo and it pulls GPS coordinates and timestamp straight from the EXIF data, then automatically fetches weather and reverse-geocodes the location. Everything is stored locally in SQLite.
 
 ## Stack
 
-- **Backend**: Node.js + Express, better-sqlite3, sharp, exifr, multer
+- **Backend**: Node.js + Express, `node:sqlite`, sharp, heic-convert, exifr, multer
 - **Frontend**: React 18, Vite, React Router, React-Leaflet, Bootstrap 5
 
 ## Setup
 
 ```bash
-cd server && npm install
-cd ../client && npm install
+# From the project root — installs both server and client dependencies
+npm run install:all
 ```
 
-Create `server/.env` if you want a custom port:
+Create `server/.env` if you want a custom port (defaults to 5001):
 ```
 PORT=5001
 ```
@@ -27,29 +27,33 @@ Two terminals:
 
 ```bash
 # Terminal 1
-cd server && npm run dev
+npm run server
 
 # Terminal 2
-cd client && npm run dev
+npm run client
 ```
 
 Open http://localhost:5173
 
-The Vite dev server proxies `/api` and `/uploads` to Express, so no CORS issues in dev.
+The Vite dev server proxies `/api` and `/uploads` to Express.
 
-## What it does so far
+## Features
 
-- Upload one or multiple photos per catch
+- Upload one or more photos per catch (JPEG, PNG, WebP, HEIC/HEIF)
 - Pulls GPS + timestamp from EXIF automatically
-- Fetches weather from Open-Meteo (no API key required)
-- Reverse geocodes location via OpenStreetMap Nominatim
-- Edit catch details with an interactive map picker
-- Map view showing all GPS-tagged catches
+- Fetches historical weather from Open-Meteo (no API key required)
+- Reverse geocodes location via OpenStreetMap Nominatim + Overpass (prefers named water bodies)
+- Full catch editing with an interactive map picker
+- Lure tracking — type, name, and optional advanced fields
+- Multiple photos per catch with primary photo selection
+- Combine duplicate catches (merges photos under one entry)
 - Bulk import with auto-grouping of photos taken within 60 seconds of each other
-- Configurable default species list
+- Map view with color-coded species markers
+- Stats page
+- Configurable default species, weight units (lbs/kg), and length units (in/cm)
 
 ## Data
 
-- `server/fishing.db` — SQLite DB, created on first run
+- `server/fishing.db` — SQLite database, created on first run
 - `server/uploads/` — full-size photos
 - `server/uploads/thumbs/` — 400×400 thumbnails
