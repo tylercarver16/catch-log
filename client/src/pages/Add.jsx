@@ -16,8 +16,9 @@ export default function Add() {
   const [preview, setPreview]   = useState(null);   // object URL or null
   const [primaryName, setPrimaryName] = useState(''); // original filename for HEIC label
   const [extras, setExtras]     = useState([]);
-  const [lureType, setLureType] = useState('');
-  const [lureName, setLureName] = useState('');
+  const [lureType, setLureType]       = useState('');
+  const [lureName, setLureName]       = useState('');
+  const [lureAdvanced, setLureAdvanced] = useState({});
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
   const fileRef  = useRef();
@@ -59,6 +60,7 @@ export default function Add() {
     form.set('length', inputToInches(lengthVal, lengthUnit) ?? '');
     form.set('lure_type', lureType);
     form.set('lure_name', lureName);
+    form.set('lure_advanced', JSON.stringify(lureAdvanced));
     try {
       await api.createCatch(form);
       navigate('/');
@@ -147,7 +149,8 @@ export default function Add() {
           <LureSelect
             lureType={lureType}
             lureName={lureName}
-            onChange={(type, name) => { setLureType(type); setLureName(name); }}
+            lureAdvanced={lureAdvanced}
+            onChange={(type, name, advanced) => { setLureType(type); setLureName(name); setLureAdvanced(advanced); }}
           />
         </div>
 

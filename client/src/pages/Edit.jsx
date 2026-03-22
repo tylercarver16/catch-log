@@ -83,6 +83,7 @@ export default function Edit() {
         length:        inchesToInput(catch_.length ?? null, lu),
         lure_type:     catch_.lure_type || '',
         lure_name:     catch_.lure_name || '',
+        lure_advanced: catch_.lure_advanced || {},
         notes:         catch_.notes || '',
         temp:          catch_.temp ?? '',
         wind_speed:    catch_.wind_speed ?? '',
@@ -220,7 +221,8 @@ export default function Edit() {
           <LureSelect
             lureType={form.lure_type}
             lureName={form.lure_name}
-            onChange={(type, name) => { set('lure_type', type); set('lure_name', name); }}
+            lureAdvanced={form.lure_advanced}
+            onChange={(type, name, advanced) => { set('lure_type', type); set('lure_name', name); set('lure_advanced', advanced); }}
           />
         </div>
 

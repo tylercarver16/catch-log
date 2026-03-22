@@ -52,6 +52,7 @@ try { db.exec("ALTER TABLE settings ADD COLUMN length_unit TEXT DEFAULT 'in'"); 
 // migrate: structured lure fields
 try { db.exec("ALTER TABLE catch ADD COLUMN lure_type TEXT"); } catch {}
 try { db.exec("ALTER TABLE catch ADD COLUMN lure_name TEXT"); } catch {}
+try { db.exec("ALTER TABLE catch ADD COLUMN lure_advanced TEXT"); } catch {}
 
 // make sure there's always a settings row
 const s = db.prepare('SELECT id FROM settings LIMIT 1').get();

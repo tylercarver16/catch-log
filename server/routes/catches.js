@@ -19,6 +19,19 @@ function toFloat(v) {
   return isNaN(n) ? null : n;
 }
 
+function toJsonStr(v) {
+  if (v == null || v === '') return null;
+  try {
+    const parsed = typeof v === 'string' ? JSON.parse(v) : v;
+    const filtered = Object.fromEntries(
+      Object.entries(parsed).filter(([, val]) => val !== '' && val != null)
+    );
+    return Object.keys(filtered).length ? JSON.stringify(filtered) : null;
+  } catch {
+    return null;
+  }
+}
+
 function catchToJson(c) {
   const photos = db.prepare(
     'SELECT * FROM catch_photo WHERE catch_id = ? ORDER BY sort_order'
@@ -29,6 +42,7 @@ function catchToJson(c) {
 
   return {
     ...c,
+    lure_advanced: c.lure_advanced ? JSON.parse(c.lure_advanced) : null,
     timestamp_est: !!c.timestamp_est,
     photos,
     primary_filename: primaryFilename,
@@ -56,6 +70,7 @@ router.get('/map', (req, res) => {
       date:    c.photo_taken_at ? new Date(c.photo_taken_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—',
       temp:    c.temp != null ? Math.round(c.temp) : null,
       species: c.species,
+      weight:  c.weight,
       color:   markerColor(c.species),
       thumb_url: full.primary_filename ? `/uploads/thumbs/${full.primary_filename}` : null,
     };
@@ -124,19 +139,19 @@ router.post('/', upload.array('photos'), async (req, res) => {
     const weather  = lat ? await fetchWeather(lat, lng, dt) : null;
     const locName  = lat ? await reverseGeocode(lat, lng) : null;
 
-    const { species, notes, weight, length, lure_type, lure_name } = req.body;
+    const { species, notes, weight, length, lure_type, lure_name, lure_advanced } = req.body;
 
     const info = db.prepare(`
       INSERT INTO catch
         (photo_taken_at, timestamp_est, latitude, longitude, location_name,
-         photo_filename, species, weight, length, lure_type, lure_name, notes,
+         photo_filename, species, weight, length, lure_type, lure_name, lure_advanced, notes,
          temp, wind_speed, wind_dir, precip, cloud_cover)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(
       dt.toISOString(), estimated && lat == null ? 1 : (estimated ? 1 : 0),
       lat, lng, locName, filename,
       species?.trim() || null, toFloat(weight), toFloat(length),
-      lure_type?.trim() || null, lure_name?.trim() || null, notes?.trim() || null,
+      lure_type?.trim() || null, lure_name?.trim() || null, toJsonStr(lure_advanced), notes?.trim() || null,
       weather?.temp ?? null, weather?.wind_speed ?? null,
       weather?.wind_dir ?? null, weather?.precip ?? null,
       weather?.cloud_cover ?? null,
@@ -184,7 +199,7 @@ router.put('/:id', async (req, res) => {
   const c = db.prepare('SELECT * FROM catch WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Not found' });
 
-  const { species, notes, lure_type, lure_name, weight, length,
+  const { species, notes, lure_type, lure_name, lure_advanced, weight, length,
           photo_taken_at, latitude, longitude,
           refetch_weather, temp, wind_speed, wind_dir, precip, cloud_cover } = req.body;
 
@@ -214,14 +229,14 @@ router.put('/:id', async (req, res) => {
 
   db.prepare(`
     UPDATE catch SET
-      species=?, notes=?, lure_type=?, lure_name=?, weight=?, length=?,
+      species=?, notes=?, lure_type=?, lure_name=?, lure_advanced=?, weight=?, length=?,
       photo_taken_at=?, timestamp_est=?,
       latitude=?, longitude=?, location_name=?,
       temp=?, wind_speed=?, wind_dir=?, precip=?, cloud_cover=?
     WHERE id=?
   `).run(
     species?.trim() || null, notes?.trim() || null,
-    lure_type?.trim() || null, lure_name?.trim() || null, toFloat(weight), toFloat(length),
+    lure_type?.trim() || null, lure_name?.trim() || null, toJsonStr(lure_advanced), toFloat(weight), toFloat(length),
     photo_taken_at || c.photo_taken_at,
     (!newLat || !newLng) ? 1 : 0,
     newLat ?? null, newLng ?? null, locName,

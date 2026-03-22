@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { api } from '../api.js';
 import { fmtDt, fmtCoords, cloudLabel, degToCompass, markerColor, fmtWeight, fmtLength } from '../utils.js';
 import { fmtLure } from '../constants/lureTypes.js';
+import { ADVANCED_CONFIG } from '../constants/lureAdvancedConfig.js';
 
 // leaflet's default icon breaks with bundlers, point it at the CDN instead
 delete L.Icon.Default.prototype._getIconUrl;
@@ -145,6 +146,12 @@ export default function Detail() {
               {c.weight != null && <tr><td>Weight</td><td>{fmtWeight(c.weight, weightUnit)}</td></tr>}
               {c.length != null && <tr><td>Length</td><td>{fmtLength(c.length, lengthUnit)}</td></tr>}
               {fmtLure(c.lure_type, c.lure_name) && <tr><td>Lure</td><td>{fmtLure(c.lure_type, c.lure_name)}</td></tr>}
+              {c.lure_advanced && (ADVANCED_CONFIG[c.lure_type] || [])
+                .filter(f => c.lure_advanced[f.key])
+                .map(f => (
+                  <tr key={f.key}><td className="text-muted ps-3" style={{ fontSize: '0.85em' }}>{f.label}</td><td>{c.lure_advanced[f.key]}</td></tr>
+                ))
+              }
               {c.notes && <tr><td>Notes</td><td style={{ whiteSpace: 'pre-wrap' }}>{c.notes}</td></tr>}
             </tbody>
           </table>

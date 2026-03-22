@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { api } from '../api.js';
-import { markerColor } from '../utils.js';
+import { markerColor, fmtWeight } from '../utils.js';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -15,10 +15,13 @@ L.Icon.Default.mergeOptions({
 function makePinIcon(color) {
   return L.divIcon({
     className: '',
-    html: `<div style="background:${color};width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)"></div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 24],
-    popupAnchor: [0, -24],
+    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 36" width="28" height="36" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.28))">
+      <path d="M14 1C7.9 1 3 5.9 3 12c0 7.7 11 22 11 22s11-14.3 11-22c0-6.1-4.9-11-11-11z" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <circle cx="14" cy="12" r="4" fill="rgba(255,255,255,0.5)"/>
+    </svg>`,
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    popupAnchor: [0, -38],
   });
 }
 
@@ -68,21 +71,29 @@ function UserLocation() {
   }, [map]);
 
   if (!pos) return null;
-  const icon = L.circleMarker ? null : L.divIcon({
+  const icon = L.divIcon({
     className: '',
-    html: '<div style="background:#2563eb;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>',
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    html: `
+      <div style="position:relative;width:22px;height:22px">
+        <div style="position:absolute;inset:0;border-radius:50%;background:var(--bb-water);opacity:0.18"></div>
+        <div style="position:absolute;inset:5px;border-radius:50%;background:var(--bb-water);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25)"></div>
+      </div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
   });
-  return <Marker position={pos} icon={icon || new L.Icon.Default()} />;
+  return <Marker position={pos} icon={icon} />;
 }
 
 export default function MapView() {
   const [catches, setCatches] = useState([]);
+  const [weightUnit, setWeightUnit] = useState('lbs');
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.getMapCatches().then(setCatches);
+    Promise.all([api.getMapCatches(), api.getSettings()]).then(([data, s]) => {
+      setCatches(data);
+      setWeightUnit(s.weight_unit || 'lbs');
+    });
   }, []);
 
   return (
@@ -101,11 +112,17 @@ export default function MapView() {
         {catches.map(c => (
           <Marker key={c.id} position={[c.lat, c.lng]} icon={makePinIcon(c.color)}>
             <Popup>
-              <div style={{ minWidth: 150 }}>
-                {c.thumb_url && <img src={c.thumb_url} alt="" style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 4, marginBottom: 6 }} />}
-                <div className="fw-semibold">{c.species || 'Unknown'}</div>
-                <div className="text-muted small">{c.date}</div>
-                {c.temp != null && <div className="text-muted small">{c.temp}°F</div>}
+              <div style={{ minWidth: 190 }}>
+                {c.thumb_url && <img src={c.thumb_url} alt="" style={{ width: '100%', display: 'block', borderRadius: 4, marginBottom: 8 }} />}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
+                  <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{c.species || 'Unknown'}</div>
+                  {c.weight != null && (
+                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1.25rem', lineHeight: 1, color: '#2ECC71', whiteSpace: 'nowrap' }}>
+                      {fmtWeight(c.weight, weightUnit)}
+                    </div>
+                  )}
+                </div>
+                <div className="text-muted small">{c.date}{c.temp != null ? ` · ${c.temp}°F` : ''}</div>
                 <button
                   className="btn btn-sm btn-teal mt-2 w-100"
                   onClick={() => navigate(`/catch/${c.id}?ref=map`)}
