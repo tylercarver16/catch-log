@@ -1,5 +1,12 @@
 import { NavLink } from 'react-router-dom';
 
+function closeMenu() {
+  const menu = document.getElementById('navmenu');
+  if (menu?.classList.contains('show')) {
+    document.querySelector('.navbar-toggler')?.click();
+  }
+}
+
 export default function Navbar() {
   return (
     <nav className="navbar navbar-expand-sm sticky-top">
@@ -36,6 +43,7 @@ export default function Navbar() {
                   to={to}
                   end={to === '/'}
                   className={({ isActive }) => `nav-link${isActive ? ' active fw-semibold' : ''}`}
+                  onClick={closeMenu}
                 >
                   {label}
                 </NavLink>
