@@ -7,6 +7,7 @@ export const api = {
   getCatches:    ()         => axios.get(`${BASE}/catches`).then(r => r.data),
   getMapCatches: ()         => axios.get(`${BASE}/catches/map`).then(r => r.data),
   getCatch:      (id)       => axios.get(`${BASE}/catches/${id}`).then(r => r.data),
+  prepareCatch:  (form)     => axios.post(`${BASE}/catches/prepare`, form).then(r => r.data),
   createCatch:   (form)     => axios.post(`${BASE}/catches`, form).then(r => r.data),
   updateCatch:      (id, data)     => axios.put(`${BASE}/catches/${id}`, data).then(r => r.data),
   setPrimaryPhoto:  (id, filename) => axios.put(`${BASE}/catches/${id}/primary-photo`, { filename }).then(r => r.data),

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { randomUUID } from 'crypto';
 import multer from 'multer';
 import fs from 'fs';
 import os from 'os';
@@ -13,6 +14,25 @@ import { UPLOAD_DIR, THUMB_DIR } from '../config.js';
 
 const router = Router();
 const upload = multer({ dest: os.tmpdir() });
+
+// Temp store for prepared (not yet saved) catches — keyed by prepareId.
+// Auto-cleaned after 30 minutes; orphaned photo files are deleted on expiry.
+const tempStore = new Map();
+
+function storePrepare(data) {
+  const prepareId = randomUUID();
+  tempStore.set(prepareId, data);
+  setTimeout(() => {
+    const d = tempStore.get(prepareId);
+    if (d) {
+      d.filenames.forEach(fn =>
+        [UPLOAD_DIR, THUMB_DIR].forEach(dir => fs.unlink(`${dir}/${fn}`, () => {}))
+      );
+      tempStore.delete(prepareId);
+    }
+  }, 30 * 60 * 1000);
+  return prepareId;
+}
 
 function toFloat(v) {
   const n = parseFloat(v);
@@ -121,8 +141,101 @@ router.post('/combine', (req, res) => {
   res.json(catchToJson(db.prepare('SELECT * FROM catch WHERE id = ?').get(keepId)));
 });
 
+// prepare: process photos + fetch EXIF/weather/geocode, return data without saving
+router.post('/prepare', upload.array('photos'), async (req, res) => {
+  const files = req.files || [];
+  if (!files.length) return res.status(400).json({ error: 'No photos uploaded' });
+
+  const [primaryFile, ...extraFiles] = files;
+  const ext = path.extname(primaryFile.originalname).toLowerCase();
+  if (!isAllowedExt(ext)) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: `Unsupported file type (${ext})` });
+  }
+
+  try {
+    const { dt, lat, lng, estimated } = await extractExif(primaryFile.path);
+    const filename = await processPhoto(primaryFile.path, primaryFile.originalname);
+
+    const extraFilenames = [];
+    for (const ef of extraFiles) {
+      const eExt = path.extname(ef.originalname).toLowerCase();
+      if (!isAllowedExt(eExt)) continue;
+      try {
+        extraFilenames.push(await processPhoto(ef.path, ef.originalname));
+      } catch (e) {
+        console.warn('Extra photo skipped:', e.message);
+      }
+    }
+
+    const [weather, locName] = await Promise.all([
+      lat ? fetchWeather(lat, lng, dt) : Promise.resolve(null),
+      lat ? reverseGeocode(lat, lng)   : Promise.resolve(null),
+    ]);
+
+    const prepareId = storePrepare({
+      filenames: [filename, ...extraFilenames],
+      lat, lng,
+      photo_taken_at: dt.toISOString(),
+      timestamp_est: estimated && lat == null ? 1 : (estimated ? 1 : 0),
+      location_name: locName,
+      weather,
+    });
+
+    res.json({ prepareId, lat, lng, location_name: locName, photo_taken_at: dt.toISOString(), weather });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+  }
+});
+
 // create a catch from uploaded photos
 router.post('/', upload.array('photos'), async (req, res) => {
+  // --- finalize a prepared catch ---
+  const { prepareId } = req.body;
+  if (prepareId) {
+    const prep = tempStore.get(prepareId);
+    if (!prep) return res.status(400).json({ error: 'Prepare session expired. Please upload again.' });
+
+    const newLat = req.body.lat !== '' && req.body.lat != null ? parseFloat(req.body.lat) : prep.lat;
+    const newLng = req.body.lng !== '' && req.body.lng != null ? parseFloat(req.body.lng) : prep.lng;
+
+    let locName = prep.location_name;
+    if (newLat !== prep.lat || newLng !== prep.lng) {
+      locName = await reverseGeocode(newLat, newLng);
+    }
+
+    const { species, notes, weight, length, lure_type, lure_name, lure_advanced } = req.body;
+
+    const info = db.prepare(`
+      INSERT INTO catch
+        (photo_taken_at, timestamp_est, latitude, longitude, location_name,
+         photo_filename, species, weight, length, lure_type, lure_name, lure_advanced, notes,
+         temp, wind_speed, wind_dir, precip, cloud_cover)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `).run(
+      prep.photo_taken_at, prep.timestamp_est,
+      newLat ?? null, newLng ?? null, locName,
+      prep.filenames[0],
+      species?.trim() || null, toFloat(weight), toFloat(length),
+      lure_type?.trim() || null, lure_name?.trim() || null, toJsonStr(lure_advanced), notes?.trim() || null,
+      prep.weather?.temp ?? null, prep.weather?.wind_speed ?? null,
+      prep.weather?.wind_dir ?? null, prep.weather?.precip ?? null,
+      prep.weather?.cloud_cover ?? null,
+    );
+    const catchId = info.lastInsertRowid;
+
+    prep.filenames.forEach((fn, i) =>
+      db.prepare('INSERT INTO catch_photo (catch_id, filename, is_primary, sort_order) VALUES (?,?,?,?)')
+        .run(catchId, fn, i === 0 ? 1 : 0, i)
+    );
+
+    tempStore.delete(prepareId);
+    return res.status(201).json(catchToJson(db.prepare('SELECT * FROM catch WHERE id = ?').get(catchId)));
+  }
+
+  // --- original flow: photos uploaded directly ---
   const files = req.files || [];
   if (!files.length) return res.status(400).json({ error: 'No photos uploaded' });
 
